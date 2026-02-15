@@ -26,7 +26,7 @@ Let's look at everything in order.
    - SVGcode - allows you to convert a raster image into a vector
    - Roller - module for rolling images
    - OpenPoseEditor
-   - Logo - overlaying a logo on an image
+   - Logo - overlaying a logo/watermark on an image
    - Photopea
 4. Select the resolution and aspect ratio of the generated image
 5. Wildcard
@@ -160,10 +160,7 @@ Upscale - image enlargement
 
 Codeformer_Fidelity - signability coefficient, inversely proportional to quality
 
-
-Sace input image - saves the input image from the previous iteration (generation or previous Extention)
-=======
-
+Face input image - saves the input image from the previous iteration (generation or previous Extention)
 
 
 **Vector**
@@ -351,9 +348,11 @@ Save to OUTPUT FOLDER - saving the image to the output folder
 
 This module allows you to create skeletons for subsequent image creation using OpenPose ControlNet. You can also create a skeleton from an existing image.
 
-**Logo** - Logo insertion tool with automatic placement selection based on image content
+**Logo** - Logo/Watermark insertion tool with automatic placement selection based on image content
 
-<img width="1059" height="568" alt="image" src="https://github.com/user-attachments/assets/621355ca-4243-4709-80a1-726a9a0fcddd" />
+<img width="1144" height="584" alt="image" src="https://github.com/user-attachments/assets/a589d91d-70d8-47c4-b6bf-8bd518603d5d" />
+
+Select Paste Mode - select the image blending mode
 
 Size ratio - the relative size of the logo to the image. Determines what percentage of the smaller side of the image the logo will occupy.
 
@@ -362,6 +361,18 @@ Margin Ratio - logo offset from image edges. Determines how far from the corner 
 Minimal complexity for background - the background complexity threshold at which a background is automatically added under the logo.
 
 Сorner priority - select the priority of choosing the angle when overlaying the logo.
+
+<img width="1155" height="545" alt="image" src="https://github.com/user-attachments/assets/f5a7d14b-b607-4792-ba90-b1d408a9ffaa" />
+
+Opacity (%) - sets the watermark's transparency
+
+Scale (%) - sets the watermark's scale relative to the maximum size of this watermark at a given tilt angle
+
+Rotate angle (degrees) - sets the watermark's tilt angle relative to the horizontal
+
+Offset X (%) - offset of the underlying row relative to the above row along the X axis, as a percentage of the width of one watermark element
+
+Offset Y (%) - offset of the underlying row relative to the above row along the Y axis, as a percentage of the width of one watermark element
 
 
 **Photopea** - a free online analogue of Photoshop
@@ -536,6 +547,9 @@ All suggestions and questions can be voiced in the [Telegram-group](https://t.me
 
 
 ***Change log***
+
+v9.2.7
+ 1. Add Watermark mode in Logo.
 
 v9.2.6
  1. Fixed a bug in ADetailer after Inpaint.
