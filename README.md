@@ -160,10 +160,7 @@ Upscale - image enlargement
 
 Codeformer_Fidelity - signability coefficient, inversely proportional to quality
 
-
-Sace input image - saves the input image from the previous iteration (generation or previous Extention)
-=======
-
+Face input image - saves the input image from the previous iteration (generation or previous Extention)
 
 
 **Vector**
