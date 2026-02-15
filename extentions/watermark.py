@@ -170,8 +170,113 @@ def place_logo_in_corner(image_np, logo_pil,size_ratio,margin_ratio,min_complexi
     print(f"Substrate: {'Yes' if bg_complexity > min_complexity_for_bg else 'No'}")
     return pil_image
 
+def get_rotated_size(width, height, angle_deg):
+    """Calculate bounding box size after rotation (without actually rotating)"""
+    angle_normalized = abs(angle_deg) % 180
+    if angle_normalized > 90:
+        angle_normalized = 180 - angle_normalized
+    
+    angle_rad = math.radians(angle_normalized)
+    w = abs(width * math.cos(angle_rad)) + abs(height * math.sin(angle_rad))
+    h = abs(width * math.sin(angle_rad)) + abs(height * math.cos(angle_rad))
+    return int(math.ceil(w)), int(math.ceil(h))
 
-def process(logo,size_ratio,margin_ratio,min_complexity_for_bg,priority1,priority2,priority3,priority4):
+def watermark_process(img, watermark, opacity, scale_factor, rotation_angle, spacing_x, spacing_y):
+
+        img_h, img_w = img.shape[:2]
+        
+        # 1. Вычисляем размеры ПОСЛЕ поворота
+        wm_w, wm_h = watermark.size
+        rotated_w, rotated_h = get_rotated_size(wm_w, wm_h, rotation_angle)
+        
+        # 2. Вычисляем МАКСИМАЛЬНЫЙ масштаб для полного вписывания
+        scale_to_fit_width = img_w / rotated_w
+        scale_to_fit_height = img_h / rotated_h
+        max_fit_scale = min(scale_to_fit_width, scale_to_fit_height)
+        
+        # 3. Применяем пользовательский SCALE
+        final_scale = max_fit_scale * scale_factor
+        
+        # 4. Поворачиваем водяной знак (положительный угол = по часовой стрелке)
+        wm_rotated = watermark.rotate(-rotation_angle, expand=True, resample=Image.BICUBIC)
+        new_w = int(wm_rotated.width * final_scale)
+        new_h = int(wm_rotated.height * final_scale)
+        wm_tile = wm_rotated.resize((new_w, new_h), Image.LANCZOS)
+        wm_tile = apply_opacity(wm_tile, opacity)
+        
+        tile_w, tile_h = wm_tile.size
+        
+        # 5. Режим отображения
+        base = img.convert("RGBA") if img.mode != "RGBA" else img.copy()
+        overlay = Image.new("RGBA", (img_w, img_h), (0, 0, 0, 0))
+        tiles_count = 1
+        
+        if scale_factor >= 0.95:  # ЦЕЛЬНЫЙ ЗНАК ПО ЦЕНТРУ
+            pos_x = (img_w - tile_w) // 2
+            pos_y = (img_h - tile_h) // 2
+            overlay.paste(wm_tile, (pos_x, pos_y), wm_tile)
+            mode = "SINGLE"
+        else:  # МОЗАИКА С ДОЛЕВЫМИ ПРОМЕЖУТКАМИ
+            # ШАГ МОЗАИКИ = ширина/высота тайла × (1 + SPACING_X/Y)
+            step_x = int(round(tile_w * (1 + spacing_x)))
+            step_y = int(round(tile_h * (1 + spacing_y)))
+            
+            # Центрируем мозаику
+            start_y = -((img_h + tile_h) % step_y) // 2 - tile_h // 2
+            row = 0
+            y = start_y
+            tiles_count = 0
+            
+            while y < img_h + tile_h:
+                # ───────────────────────────────────────────────────────────────
+                # ИСПРАВЛЕНИЕ: Шахматное смещение ТОЛЬКО если есть промежутки
+                # ───────────────────────────────────────────────────────────────
+                # Если SPACING_X = 0.0, смещение = 0 (плотная сетка без шахматного узора)
+                # Если SPACING_X > 0.0, применяем шахматное смещение
+                offset_x = step_x // 2 if (row % 2 == 1 and spacing_x > 0.0) else 0
+                
+                # Стартовая позиция с учётом центрирования и смещения
+                start_x = -((img_w + tile_w) % step_x) // 2 - tile_w // 2 + offset_x
+                x = start_x
+                
+                while x < img_w + tile_w:
+                    if x + tile_w > 0 and y + tile_h > 0 and x < img_w and y < img_h:
+                        overlay.paste(wm_tile, (int(x), int(y)), wm_tile)
+                        tiles_count += 1
+                    x += step_x
+                
+                y += step_y
+                row += 1
+            mode = "MOSAIC"
+        
+        # 6. Компонуем и сохраняем
+        result = Image.alpha_composite(base, overlay)
+        #filename = os.path.basename(image_path)
+        #ext = os.path.splitext(filename)[1].lower()
+        #save_path = os.path.join(output_folder, filename)
+        
+        #if ext in (".jpg", ".jpeg"):
+        #    result_rgb = result.convert("RGB")
+        #    if exif_data:
+        #        result_rgb.save(save_path, "JPEG", exif=exif_data, quality=95)
+        #    else:
+        #        result_rgb.save(save_path, "JPEG", quality=95)
+        #else:
+        #    result.save(save_path, "PNG")
+        
+        # 7. Вывод информации
+        #coverage_pct = min(100, int(final_scale / max_fit_scale * 100))
+        #print(f"  ✓ {filename:30s} | {mode:6s} | Tiles: {tiles_count:3d} | Size: {coverage_pct:3d}% | "
+        #      f"GapX: {spacing_x:.1f}× | GapY: {spacing_y:.1f}× | Angle: {rotation_angle:+3d}° | Opacity: {opacity:.0%}")
+        return result
+
+def process(logo,size_ratio,margin_ratio,min_complexity_for_bg,priority1,priority2,priority3,priority4,logo_mode,opacity_water,scale_water,angle_water,spacing_x,spacing_y):
+    opacity_water=opacity_water / 100.0
+    scale_water=scale_water / 100.0
+    spacing_x=spacing_x / 100.0
+    spacing_y=spacing_y / 100.0
+    
+    
     corner_priority=[priority1,priority2,priority3,priority4]
     batch_path=f"{temp_dir}batch_logo"
     batch_temp=f"{temp_dir}batch_temp"
@@ -179,12 +284,16 @@ def process(logo,size_ratio,margin_ratio,min_complexity_for_bg,priority1,priorit
     batch_all=len(batch_files)
     passed=1
     for f_name in batch_files:
-        print (f"\033[91m[Logo QUEUE] {passed} / {batch_all}. Filename: {f_name} \033[0m")
-        gr.Info(f"Logo Batch: start element generation {passed}/{batch_all}. Filename: {f_name}") 
+        print (f"\033[91m[Logo/Watermark QUEUE] {passed} / {batch_all}. Filename: {f_name} \033[0m")
+        gr.Info(f"Logo/Watermark Batch: start element generation {passed}/{batch_all}. Filename: {f_name}") 
         img = Image.open(batch_path+os.path.sep+f_name)
         yield gr.update(value=img,visible=True),gr.update(visible=False)
         image_in=cv2.imread(batch_path+os.path.sep+f_name)
-        image_out=place_logo_in_corner(image_in, logo,size_ratio,margin_ratio,min_complexity_for_bg,corner_priority)
+        if logo_mode=="Logo":
+            image_out=place_logo_in_corner(image_in, logo,size_ratio,margin_ratio,min_complexity_for_bg,corner_priority)
+        else:
+            image_out=watermark_process(image_in,logo,opacity_water,scale_water,angle_water,spacing_x,spacing_y)
+                    
         name, _ = os.path.splitext(f_name)
         filename =  batch_temp + os.path.sep + name +'_logo.png'
         image_out = image_out.convert('RGB')
@@ -254,12 +363,12 @@ def watermark():
     with gr.Row(visible=False) as water_set:
         opacity_water = gr.Slider(label='Opacity (%)', minimum=0, maximum=100, step=0.5, value=85,interactive=True)
         scale_water = gr.Slider(label='Scale (%)', minimum=0, maximum=100, step=0.05, value=20,interactive=True)
-        ange_water = gr.Slider(label='Rotate angle (degrees)', minimum=-180, maximum=180, step=1.0, value=0,interactive=True)
+        angle_water = gr.Slider(label='Rotate angle (degrees)', minimum=-180, maximum=180, step=1.0, value=0,interactive=True)
     with gr.Row(visible=False) as water_set2:
         spacing_x = gr.Slider(label='Offset X (%)', minimum=0, maximum=100, step=0.5, value=50.0,interactive=True)
         spacing_y = gr.Slider(label='Offset Y (%)', minimum=0, maximum=100, step=0.5, value=50.0,interactive=True)
     with gr.Row():
-            watermark_start=gr.Button(value='Start paste logo')
+            watermark_start=gr.Button(value='Start paste logo/watermark')
     with gr.Row(visible=False):
         ext_dir=gr.Textbox(value='batch_logo',visible=False)
     def change_mode(mode):
@@ -277,7 +386,10 @@ def watermark():
                         outputs=[watermark_start,file_out,image_out]) \
                 .then(fn=batch.clear_dirs,inputs=ext_dir) \
                 .then(fn=batch.unzip_file,inputs=[image_in,image_in_multi,enable_zip_image,ext_dir]) \
-                .then(fn=process, inputs=[logo_image,size_ratio,margin_ratio,min_complexity_for_bg,priority1,priority2,priority3,priority4],
+                .then(fn=process,
+                        inputs=[logo_image,size_ratio,margin_ratio,min_complexity_for_bg,
+                            priority1,priority2,priority3,priority4,
+                            logo_mode,opacity_water,scale_water,angle_water,spacing_x,spacing_y],
                         outputs=[preview_out,file_out],show_progress=False) \
                 .then(lambda: (gr.update(visible=True, interactive=True),gr.update(visible=False)),outputs=[file_out,preview_out],show_progress=False) \
                 .then(fn=batch.output_zip_image, outputs=[image_out,file_out]) \
