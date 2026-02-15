@@ -251,11 +251,11 @@ def watermark():
                     priority3 = gr.Dropdown(choices=priority,value=priority[2],label="Priority 3")
                 with gr.Column(scale=1, min_width=100):
                     priority4 = gr.Dropdown(choices=priority,value=priority[3],label="Priority 4")
-    with gr.Row() as water_set:
+    with gr.Row(visible=False) as water_set:
         opacity_water = gr.Slider(label='Opacity (%)', minimum=0, maximum=100, step=0.5, value=85,interactive=True)
         scale_water = gr.Slider(label='Scale (%)', minimum=0, maximum=100, step=0.05, value=20,interactive=True)
         ange_water = gr.Slider(label='Rotate angle (degrees)', minimum=-180, maximum=180, step=1.0, value=0,interactive=True)
-    with gr.Row() as water_set2:
+    with gr.Row(visible=False) as water_set2:
         spacing_x = gr.Slider(label='Offset X (%)', minimum=0, maximum=100, step=0.5, value=50.0,interactive=True)
         spacing_y = gr.Slider(label='Offset Y (%)', minimum=0, maximum=100, step=0.5, value=50.0,interactive=True)
     with gr.Row():
