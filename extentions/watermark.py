@@ -212,9 +212,8 @@ def watermark_process(img, watermark, opacity, scale_factor, rotation_angle, spa
         
         tile_w, tile_h = wm_tile.size
         
-        # 5. Режим отображения
-        base = img.convert("RGBA") if img.mode != "RGBA" else img.copy()
-        overlay = Image.new("RGBA", (img_w, img_h), (0, 0, 0, 0))
+        # 5. Режим отображения            
+        overlay = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)).convert("RGBA")
         tiles_count = 1
         
         if scale_factor >= 0.95:  # ЦЕЛЬНЫЙ ЗНАК ПО ЦЕНТРУ
@@ -256,7 +255,6 @@ def watermark_process(img, watermark, opacity, scale_factor, rotation_angle, spa
             mode = "MOSAIC"
         
         # 6. Компонуем и сохраняем
-        result = Image.alpha_composite(base, overlay)
         #filename = os.path.basename(image_path)
         #ext = os.path.splitext(filename)[1].lower()
         #save_path = os.path.join(output_folder, filename)
@@ -274,7 +272,7 @@ def watermark_process(img, watermark, opacity, scale_factor, rotation_angle, spa
         #coverage_pct = min(100, int(final_scale / max_fit_scale * 100))
         #print(f"  ✓ {filename:30s} | {mode:6s} | Tiles: {tiles_count:3d} | Size: {coverage_pct:3d}% | "
         #      f"GapX: {spacing_x:.1f}× | GapY: {spacing_y:.1f}× | Angle: {rotation_angle:+3d}° | Opacity: {opacity:.0%}")
-        return result
+        return overlay
 
 def process(logo,size_ratio,margin_ratio,min_complexity_for_bg,priority1,priority2,priority3,priority4,logo_mode,opacity_water,scale_water,angle_water,spacing_x,spacing_y):
     opacity_water=opacity_water / 100.0
