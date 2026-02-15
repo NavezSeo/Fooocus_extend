@@ -35,7 +35,7 @@ def detect_faces(image_np):
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
         return faces
     except:
-        return []  # Если что-то пошло не wrong, возвращаем пустой список
+        return []
 
 def get_face_regions(faces, img_width, img_height, padding_ratio=0.3):
     forbidden_zones = []
@@ -53,7 +53,7 @@ def get_face_regions(faces, img_width, img_height, padding_ratio=0.3):
     return forbidden_zones
 
 def is_position_valid(x, y, logo_width, logo_height, forbidden_zones):
-    if not forbidden_zones:  # Если нет запрещенных зон
+    if not forbidden_zones:
         return True
     
     logo_x2, logo_y2 = x + logo_width, y + logo_height
@@ -109,7 +109,7 @@ def get_corner_positions(img_width, img_height, logo_width, logo_height, margin_
 
 def get_corner_background_color(image_np, x, y, logo_width, logo_height):
     img_height, img_width = image_np.shape[:2]
-    # Берем небольшую область в углу
+
     x1 = max(0, x - logo_width//4)
     y1 = max(0, y - logo_height//4)
     x2 = min(img_width, x + logo_width + logo_width//4)
@@ -124,8 +124,6 @@ def get_corner_background_color(image_np, x, y, logo_width, logo_height):
         return (128, 128, 128)
     avg_color = np.mean(region, axis=(0, 1))
     return (int(avg_color[2]), int(avg_color[1]), int(avg_color[0]))
-
-
 
 def place_logo_in_corner(image_np, logo_pil,size_ratio,margin_ratio,min_complexity_for_bg,corner_priority):        
     img_height, img_width = image_np.shape[:2]    
@@ -190,20 +188,12 @@ def apply_opacity(watermark, opacity):
 def watermark_process(img, watermark, opacity, scale_factor, rotation_angle, spacing_x, spacing_y):
 
         img_h, img_w = img.shape[:2]
-        
-        # 1. Вычисляем размеры ПОСЛЕ поворота
         wm_w, wm_h = watermark.size
         rotated_w, rotated_h = get_rotated_size(wm_w, wm_h, rotation_angle)
-        
-        # 2. Вычисляем МАКСИМАЛЬНЫЙ масштаб для полного вписывания
         scale_to_fit_width = img_w / rotated_w
         scale_to_fit_height = img_h / rotated_h
         max_fit_scale = min(scale_to_fit_width, scale_to_fit_height)
-        
-        # 3. Применяем пользовательский SCALE
         final_scale = max_fit_scale * scale_factor
-        
-        # 4. Поворачиваем водяной знак (положительный угол = по часовой стрелке)
         wm_rotated = watermark.rotate(-rotation_angle, expand=True, resample=Image.BICUBIC)
         new_w = int(wm_rotated.width * final_scale)
         new_h = int(wm_rotated.height * final_scale)
@@ -211,36 +201,27 @@ def watermark_process(img, watermark, opacity, scale_factor, rotation_angle, spa
         wm_tile = apply_opacity(wm_tile, opacity)
         
         tile_w, tile_h = wm_tile.size
-        
-        # 5. Режим отображения            
+         
         overlay = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)).convert("RGBA")
         tiles_count = 1
         
-        if scale_factor >= 0.95:  # ЦЕЛЬНЫЙ ЗНАК ПО ЦЕНТРУ
+        if scale_factor >= 0.95:
             pos_x = (img_w - tile_w) // 2
             pos_y = (img_h - tile_h) // 2
             overlay.paste(wm_tile, (pos_x, pos_y), wm_tile)
-            mode = "SINGLE"
-        else:  # МОЗАИКА С ДОЛЕВЫМИ ПРОМЕЖУТКАМИ
-            # ШАГ МОЗАИКИ = ширина/высота тайла × (1 + SPACING_X/Y)
+        else: 
             step_x = int(round(tile_w * (1 + spacing_x)))
             step_y = int(round(tile_h * (1 + spacing_y)))
             
-            # Центрируем мозаику
             start_y = -((img_h + tile_h) % step_y) // 2 - tile_h // 2
             row = 0
             y = start_y
             tiles_count = 0
             
             while y < img_h + tile_h:
-                # ───────────────────────────────────────────────────────────────
-                # ИСПРАВЛЕНИЕ: Шахматное смещение ТОЛЬКО если есть промежутки
-                # ───────────────────────────────────────────────────────────────
-                # Если SPACING_X = 0.0, смещение = 0 (плотная сетка без шахматного узора)
-                # Если SPACING_X > 0.0, применяем шахматное смещение
+
                 offset_x = step_x // 2 if (row % 2 == 1 and spacing_x > 0.0) else 0
                 
-                # Стартовая позиция с учётом центрирования и смещения
                 start_x = -((img_w + tile_w) % step_x) // 2 - tile_w // 2 + offset_x
                 x = start_x
                 
@@ -252,26 +233,12 @@ def watermark_process(img, watermark, opacity, scale_factor, rotation_angle, spa
                 
                 y += step_y
                 row += 1
-            mode = "MOSAIC"
         
-        # 6. Компонуем и сохраняем
-        #filename = os.path.basename(image_path)
-        #ext = os.path.splitext(filename)[1].lower()
-        #save_path = os.path.join(output_folder, filename)
-        
-        #if ext in (".jpg", ".jpeg"):
-        #    result_rgb = result.convert("RGB")
-        #    if exif_data:
-        #        result_rgb.save(save_path, "JPEG", exif=exif_data, quality=95)
-        #    else:
-        #        result_rgb.save(save_path, "JPEG", quality=95)
-        #else:
-        #    result.save(save_path, "PNG")
-        
-        # 7. Вывод информации
-        #coverage_pct = min(100, int(final_scale / max_fit_scale * 100))
-        #print(f"  ✓ {filename:30s} | {mode:6s} | Tiles: {tiles_count:3d} | Size: {coverage_pct:3d}% | "
-        #      f"GapX: {spacing_x:.1f}× | GapY: {spacing_y:.1f}× | Angle: {rotation_angle:+3d}° | Opacity: {opacity:.0%}")
+        print(f"Opacity: {opacity}") 
+        print(f"Scale factor: {scale_factor}")
+        print(f"Rotation angle: {rotation_angle}")
+        print(f"Offset X: {spacing_x}")
+        print(f"Offset Y: {spacing_y}")
         return overlay
 
 def process(logo,size_ratio,margin_ratio,min_complexity_for_bg,priority1,priority2,priority3,priority4,logo_mode,opacity_water,scale_water,angle_water,spacing_x,spacing_y):
@@ -304,9 +271,6 @@ def process(logo,size_ratio,margin_ratio,min_complexity_for_bg,priority1,priorit
         image_out.save(filename)
         passed+=1
     return gr.update(value=None,visible=False),gr.update(visible=True)
-
-
-
 
 def watermark():
     priority=['top-left', 'top-right', 'bottom-left', 'bottom-right']
