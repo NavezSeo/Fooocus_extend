@@ -350,11 +350,9 @@ This module allows you to create skeletons for subsequent image creation using O
 
 **Logo** - Logo/Watermark insertion tool with automatic placement selection based on image content
 
-<img width="1059" height="568" alt="image" src="https://github.com/user-attachments/assets/621355ca-4243-4709-80a1-726a9a0fcddd" />
-
+<img width="1144" height="584" alt="image" src="https://github.com/user-attachments/assets/a589d91d-70d8-47c4-b6bf-8bd518603d5d" />
 
 Select Paste Mode - select the image blending mode
-
 
 Size ratio - the relative size of the logo to the image. Determines what percentage of the smaller side of the image the logo will occupy.
 
@@ -364,11 +362,16 @@ Minimal complexity for background - the background complexity threshold at which
 
 Сorner priority - select the priority of choosing the angle when overlaying the logo.
 
+<img width="1155" height="545" alt="image" src="https://github.com/user-attachments/assets/f5a7d14b-b607-4792-ba90-b1d408a9ffaa" />
 
 Opacity (%) - sets the watermark's transparency
+
 Scale (%) - sets the watermark's scale relative to the maximum size of this watermark at a given tilt angle
+
 Rotate angle (degrees) - sets the watermark's tilt angle relative to the horizontal
+
 Offset X (%) - offset of the underlying row relative to the above row along the X axis, as a percentage of the width of one watermark element
+
 Offset Y (%) - offset of the underlying row relative to the above row along the Y axis, as a percentage of the width of one watermark element
 
 
