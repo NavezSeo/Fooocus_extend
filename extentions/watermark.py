@@ -81,31 +81,20 @@ def calculate_background_complexity(image_np, x, y, width, height):
     
     if region.size == 0:
         return 0.5
-    
-
     gray_region = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
     variation = np.std(gray_region)
-    
     return min(1.0, variation / 64.0)
 
 def add_adaptive_background(logo_pil, bg_color, complexity):
-
     width, height = logo_pil.size
-    
-
     bg_alpha = int(100 + 155 * complexity) 
     bg_alpha = min(255, max(100, bg_alpha))
-    
-   
     bg_layer = Image.new('RGBA', (width, height), 
                        (int(bg_color[0]), int(bg_color[1]), int(bg_color[2]), bg_alpha))
-    
-    
     result = Image.alpha_composite(bg_layer, logo_pil)
     return result
 
-def get_corner_positions(img_width, img_height, logo_width, logo_height, margin_ratio, corner_priority):
-   
+def get_corner_positions(img_width, img_height, logo_width, logo_height, margin_ratio, corner_priority):   
     margin_x = int(img_width * margin_ratio)
     margin_y = int(img_height * margin_ratio)
     'top-left', 'top-right', 'bottom-left', 'bottom-right'
@@ -119,9 +108,7 @@ def get_corner_positions(img_width, img_height, logo_width, logo_height, margin_
     return [corners[x] for x in corner_priority]
 
 def get_corner_background_color(image_np, x, y, logo_width, logo_height):
-    
     img_height, img_width = image_np.shape[:2]
-    
     # Берем небольшую область в углу
     x1 = max(0, x - logo_width//4)
     y1 = max(0, y - logo_height//4)
@@ -135,31 +122,18 @@ def get_corner_background_color(image_np, x, y, logo_width, logo_height):
     
     if region.size == 0:
         return (128, 128, 128)
-    
-    
     avg_color = np.mean(region, axis=(0, 1))
     return (int(avg_color[2]), int(avg_color[1]), int(avg_color[0]))
 
 
 
-def place_logo_in_corner(image_np, logo_pil,size_ratio,margin_ratio,min_complexity_for_bg,corner_priority):
-    
-    
-    
-    img_height, img_width = image_np.shape[:2]
-    
-    
-    logo_original_size = logo_pil.size
-    
-    
-    
+def place_logo_in_corner(image_np, logo_pil,size_ratio,margin_ratio,min_complexity_for_bg,corner_priority):        
+    img_height, img_width = image_np.shape[:2]    
+    logo_original_size = logo_pil.size    
     logo_width, logo_height = calculate_logo_size(
         (img_width, img_height), logo_original_size, size_ratio
     )
-    logo_pil = logo_pil.resize((logo_width, logo_height), Image.LANCZOS)
-    
-    
-    
+    logo_pil = logo_pil.resize((logo_width, logo_height), Image.LANCZOS)    
     faces = detect_faces(image_np)
     forbidden_zones = get_face_regions(faces, img_width, img_height)
     
@@ -169,23 +143,15 @@ def place_logo_in_corner(image_np, logo_pil,size_ratio,margin_ratio,min_complexi
     
     final_position = None
     chosen_corner = None
-    
-    
 
     for i, (x, y) in enumerate(corner_positions):
         if is_position_valid(x, y, logo_width, logo_height, forbidden_zones):
             final_position = (x, y)
             chosen_corner = corner_priority[i]  
             break
-    
-    
     if final_position is None:
         final_position = corner_positions[0]
         chosen_corner = f'{corner_priority[0]} (forced)'
-
-    
-    
-    
     x, y = final_position
     bg_color = get_corner_background_color(image_np, x, y, logo_width, logo_height)
     bg_complexity = calculate_background_complexity(image_np, x, y, logo_width, logo_height)
@@ -196,17 +162,12 @@ def place_logo_in_corner(image_np, logo_pil,size_ratio,margin_ratio,min_complexi
     
     pil_image = Image.fromarray(cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)).convert("RGBA")
     pil_image.paste(final_logo, (x, y), final_logo)
-    
-    
-    
     print(f"Image: {img_width}x{img_height}px")
     print(f"Logo: {logo_width}x{logo_height}px")
     print(f"Position: {chosen_corner} ({x}, {y})")
     print(f"Faces: {len(faces)}")
     print(f"Background complexity: {bg_complexity:.2f}")
     print(f"Substrate: {'Yes' if bg_complexity > min_complexity_for_bg else 'No'}")
-    
-    
     return pil_image
 
 
@@ -252,6 +213,12 @@ def watermark():
         else:
             return gr.update (visible=False),gr.update(visible=True)
     with gr.Row():
+        logo_mode=gr.Radio(
+                choices=["Logo", "Watermark"],
+                value="Logo",
+                label="Select Paste Mode"
+                )
+    with gr.Row():
         with gr.Column():
             with gr.Row():
                 image_in=gr.File(label="Upload a ZIP file of Source Images",file_count='single',file_types=['.zip'],visible=False,height=260,interactive=True)
@@ -268,11 +235,11 @@ def watermark():
                 file_out=gr.File(label="Download a ZIP file", file_count='single',height=260,visible=True)
                 preview_out=gr.Image(label="Process preview",visible=False,height=260,interactive=False)
                 image_out=gr.Image(label="",visible=False,height=260,interactive=False)
-    with gr.Row():
+    with gr.Row() as logo_set:
         size_ratio = gr.Slider(label='Size Ratio', minimum=0.0, maximum=1.0, step=0.01, value=0.2,interactive=True)
         margin_ratio = gr.Slider(label='Margin Ratio', minimum=0.0, maximum=1.0, step=0.01, value=0.02,interactive=True)
         min_complexity_for_bg = gr.Slider(label='Minimal complexity for background', minimum=0.0, maximum=1.0, step=0.01, value=0.7,interactive=True)
-    with gr.Row():
+    with gr.Row() as logo_grp:
         with gr.Group():
             gr.Markdown("### Сorner priority")
             with gr.Row():
@@ -284,11 +251,25 @@ def watermark():
                     priority3 = gr.Dropdown(choices=priority,value=priority[2],label="Priority 3")
                 with gr.Column(scale=1, min_width=100):
                     priority4 = gr.Dropdown(choices=priority,value=priority[3],label="Priority 4")
-
+    with gr.Row() as water_set:
+        opacity_water = gr.Slider(label='Opacity (%)', minimum=0, maximum=100, step=0.5, value=85,interactive=True)
+        scale_water = gr.Slider(label='Scale (%)', minimum=0, maximum=100, step=0.05, value=20,interactive=True)
+        ange_water = gr.Slider(label='Rotate angle (degrees)', minimum=-180, maximum=180, step=1.0, value=0,interactive=True)
+    with gr.Row() as water_set2:
+        spacing_x = gr.Slider(label='Offset X (%)', minimum=0, maximum=100, step=0.5, value=50.0,interactive=True)
+        spacing_y = gr.Slider(label='Offset Y (%)', minimum=0, maximum=100, step=0.5, value=50.0,interactive=True)
     with gr.Row():
             watermark_start=gr.Button(value='Start paste logo')
     with gr.Row(visible=False):
         ext_dir=gr.Textbox(value='batch_logo',visible=False)
+    def change_mode(mode):
+        return (
+            gr.update(visible=(voice_mode == "Logo")),
+            gr.update(visible=(voice_mode == "Logo")),
+            gr.update(visible=(voice_mode == "Watermark")),
+            gr.update(visible=(voice_mode == "Watermark"))
+            )
+    logo_mode.change(fn=change_mode,inputs=[logo_mode],outputs=[logo_set,logo_grp,water_set,water_set2])
     enable_zip_image.change(fn=zip_enable,inputs=[enable_zip_image,image_in_multi],outputs=[image_in,image_in_multi,image_in_single],show_progress=False)
     image_in_single.clear(fn=clear_single,inputs=image_in_single,outputs=[image_in_single,image_in_multi],show_progress=False)
     image_in_multi.upload(fn=single_image,inputs=image_in_multi,outputs=[image_in_single,image_in_multi],show_progress=False)
