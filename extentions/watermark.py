@@ -264,10 +264,10 @@ def watermark():
         ext_dir=gr.Textbox(value='batch_logo',visible=False)
     def change_mode(mode):
         return (
-            gr.update(visible=(voice_mode == "Logo")),
-            gr.update(visible=(voice_mode == "Logo")),
-            gr.update(visible=(voice_mode == "Watermark")),
-            gr.update(visible=(voice_mode == "Watermark"))
+            gr.update(visible=(mode == "Logo")),
+            gr.update(visible=(mode == "Logo")),
+            gr.update(visible=(mode == "Watermark")),
+            gr.update(visible=(mode == "Watermark"))
             )
     logo_mode.change(fn=change_mode,inputs=[logo_mode],outputs=[logo_set,logo_grp,water_set,water_set2])
     enable_zip_image.change(fn=zip_enable,inputs=[enable_zip_image,image_in_multi],outputs=[image_in,image_in_multi,image_in_single],show_progress=False)
