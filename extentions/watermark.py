@@ -180,7 +180,13 @@ def get_rotated_size(width, height, angle_deg):
     w = abs(width * math.cos(angle_rad)) + abs(height * math.sin(angle_rad))
     h = abs(width * math.sin(angle_rad)) + abs(height * math.cos(angle_rad))
     return int(math.ceil(w)), int(math.ceil(h))
+def apply_opacity(watermark, opacity):
 
+    wm = watermark.copy()
+    alpha = wm.getchannel("A")
+    alpha = alpha.point(lambda p: int(p * opacity))
+    wm.putalpha(alpha)
+    return wm
 def watermark_process(img, watermark, opacity, scale_factor, rotation_angle, spacing_x, spacing_y):
 
         img_h, img_w = img.shape[:2]
