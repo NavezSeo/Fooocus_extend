@@ -534,6 +534,9 @@ All suggestions and questions can be voiced in the [Telegram-group](https://t.me
 
 ***Change log***
 
+v9.2.7
+ 1. Add Watermark mode in Logo.
+
 v9.2.6
  1. Fixed a bug in ADetailer after Inpaint.
  2. The Stop and Skip buttons now work correctly.
