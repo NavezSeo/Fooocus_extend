@@ -306,7 +306,7 @@ def watermark():
                 enable_zip_image = gr.Checkbox(label="Upload ZIP-file", value=False)
         with gr.Column():
             with gr.Row():
-                logo_image=gr.Image(label="Source Logo",visible=True,height=260,interactive=True,type="pil", image_mode="RGBA")
+                logo_image=gr.Image(label="Source Logo/Watermark",visible=True,height=260,interactive=True,type="pil", image_mode="RGBA")
         with gr.Column():
             with gr.Row():
                 file_out=gr.File(label="Download a ZIP file", file_count='single',height=260,visible=True)
